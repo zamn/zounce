@@ -1,5 +1,5 @@
-title = "Zounce Configuration"
-port = 7777
+Title = "Zounce Configuration"
+Port = 7777
 
 [logging]
     # TODO: Don't use SQLite if multiple users

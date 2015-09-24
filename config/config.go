@@ -1,6 +1,11 @@
 package config
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+
+	"github.com/BurntSushi/toml"
+)
 
 type Config struct {
 	Title   string
@@ -40,7 +45,11 @@ type Auth struct {
 	ca_path string
 }
 
-func LoadConfig(configPath string) (Config, error) {
-	fmt.Println(configPath)
-	return Config{}, nil
+func LoadConfig(configFile string) (Config, error) {
+	var c Config
+	if _, err := toml.DecodeFile(configFile, &c); err != nil {
+		log.Fatalf("Cannot load config file! Error: %s\n", err)
+	}
+	fmt.Printf("%#v\n", c)
+	return c, nil
 }
