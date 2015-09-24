@@ -1,0 +1,38 @@
+title = "Zounce Configuration"
+
+[meta]
+    port = 7777
+
+[logging]
+    [logging.database]
+    # TODO: Don't use SQLite if multiple users
+    adapter = "SQLite3"
+    database = "zounce"
+
+[users]
+    [users.zamn]
+    nick = "zamn"
+    altnick = "zamn92"
+
+    [auth]
+    ca_path = "/certs/ca.crt"
+
+    [users.zamn.certs]
+
+        # desktop pc
+        [users.zamn.certs.desktop]
+        cert_path = "/certs/zamn.crt"
+
+    [networks]
+
+        [networks.GameSurge]
+        servers = ["irc.gamesurge.net:6666"]
+
+            [networks.GameSurge.perform]
+            channels: ["#zamN"]
+            # commands: ["/msg AuthServ@Services.Gamesurge.net user pass"]
+
+        # next :p
+        # [networks.Freenode]
+        # servers = ["irc.freenode.net:6666"]
+
