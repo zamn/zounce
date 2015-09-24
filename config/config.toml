@@ -29,8 +29,8 @@ title = "Zounce Configuration"
         servers = ["irc.gamesurge.net:6666"]
 
             [networks.GameSurge.perform]
-            channels: ["#zamN"]
-            # commands: ["/msg AuthServ@Services.Gamesurge.net user pass"]
+            channels = ["#zamN"]
+            # commands = ["/msg AuthServ@Services.Gamesurge.net user pass"]
 
         # next :p
         # [networks.Freenode]
