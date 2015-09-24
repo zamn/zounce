@@ -1,10 +1,10 @@
 package config
 
 import (
+	"errors"
 	"log"
 
 	"github.com/BurntSushi/toml"
-	"github.com/davecgh/go-spew/spew"
 )
 
 type Config struct {
@@ -47,9 +47,16 @@ type Auth struct {
 
 func LoadConfig(configFile string) (Config, error) {
 	var c Config
-	if _, err := toml.DecodeFile(configFile, &c); err != nil {
+	_, err := toml.DecodeFile(configFile, &c)
+	if err != nil {
 		log.Fatalf("Cannot load config file! Error: %s\n", err)
 	}
-	spew.Dump(c)
-	return c, nil
+
+	// TODO: Config validation, default values, etc
+
+	if c.Title == "Zounce Configuration" {
+		return c, nil
+	} else {
+		return Config{}, errors.New("Bad stuff")
+	}
 }
