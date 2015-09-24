@@ -1,10 +1,10 @@
 package config
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/BurntSushi/toml"
+	"github.com/davecgh/go-spew/spew"
 )
 
 type Config struct {
@@ -15,8 +15,8 @@ type Config struct {
 }
 
 type LogInfo struct {
-	adapter  string
-	database string
+	Adapter  string `toml:"adapter"`
+	Database string `toml:"database"`
 }
 
 type User struct {
@@ -28,7 +28,7 @@ type User struct {
 }
 
 type Cert struct {
-	cert_path string
+	Path string `toml:"cert_path"`
 }
 
 type Network struct {
@@ -37,12 +37,12 @@ type Network struct {
 }
 
 type Perform struct {
-	channels []string
-	commands []string
+	Channels []string
+	Commands []string
 }
 
 type Auth struct {
-	ca_path string
+	CAPath string `toml:"ca_path"`
 }
 
 func LoadConfig(configFile string) (Config, error) {
@@ -50,6 +50,6 @@ func LoadConfig(configFile string) (Config, error) {
 	if _, err := toml.DecodeFile(configFile, &c); err != nil {
 		log.Fatalf("Cannot load config file! Error: %s\n", err)
 	}
-	fmt.Printf("%#v\n", c)
+	spew.Dump(c)
 	return c, nil
 }
