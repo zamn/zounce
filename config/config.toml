@@ -1,3 +1,6 @@
+# Zounce example configuration file
+# ----------------------------------
+
 Title = "Zounce Configuration"
 Port = 7777
 
@@ -10,15 +13,17 @@ Port = 7777
     [users.zamn]
     nick = "zamn"
     altnick = "zamn92"
+    username = "zamn"
+    realname = "Adam"
 
     [users.zamn.auth]
     ca_path = "certs/ca.crt"
 
     [users.zamn.certs]
 
-        # desktop pc
-        [users.zamn.certs.desktop]
-        cert_path = "certs/zamn.crt"
+    # desktop pc
+    [users.zamn.certs.desktop]
+    cert_path = "certs/zamn.crt"
 
     [users.zamn.networks]
 
@@ -27,15 +32,15 @@ Port = 7777
             "irc.gamesurge.net:6666"
         ]
 
-            [users.zamn.networks.GameSurge.perform]
-            channels = [
-                "#zamN"
-            ]
+        [users.zamn.networks.GameSurge.perform]
+        channels = [
+            "#zamN"
+        ]
 
-            # TODO: implement
-            commands = [
-                "/msg AuthServ@Services.Gamesurge.net user pass"
-            ]
+        # TODO: implement
+        commands = [
+            "/msg AuthServ@Services.Gamesurge.net user pass"
+        ]
 
         # TODO: test freenode active chans
         # [users.zamn.networks.Freenode]

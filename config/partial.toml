@@ -1,0 +1,13 @@
+Title = "Zounce Configuration"
+Port = 7777
+
+[logging]
+    # TODO: Don't use SQLite if multiple users
+    adapter = ""
+    database = ""
+
+[users]
+    [users.zamn]
+    nick = ""
+    altnick = ""
+
