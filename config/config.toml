@@ -1,8 +1,8 @@
 # Zounce example configuration file
 # ----------------------------------
 
-Title = "Zounce Configuration"
-Port = 7777
+title = "Zounce Configuration"
+port = 7777
 
 [logging]
     # TODO: Don't use SQLite if multiple users

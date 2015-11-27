@@ -38,16 +38,18 @@ func TestValidTomlTemplate(t *testing.T) {
 }
 
 func TestEmptyFileSafeDefaults(t *testing.T) {
-	c, err := LoadConfig(EmptyFile)
-	if err != nil {
-		log.Fatalf("Failed to load config file! Error: %s\n", err)
+	_, err := LoadConfig(EmptyFile)
+
+	fmt.Println(err)
+	if len(err) == 0 {
+		log.Fatalf("Validated an empty configuration file!\n")
 	}
-	fmt.Println("C", c)
 }
 
 func TestPartialFileSafeDefaults(t *testing.T) {
 	c, err := LoadConfig(PartialFile)
-	if err != nil {
+
+	if len(err) == 0 {
 		log.Fatalf("Failed to load config file! Error: %s\n", err)
 	}
 	fmt.Println("C", *c)

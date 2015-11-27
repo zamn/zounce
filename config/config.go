@@ -13,7 +13,7 @@ import (
 type Config struct {
 	Title   string
 	Port    int
-	Logging LogInfo
+	Logging LogInfo         `validate:"hasusers"`
 	Users   map[string]User `validate:"hasusers"`
 }
 
@@ -51,6 +51,15 @@ type Auth struct {
 	CAPath string `toml:"ca_path" validate:"nonzero"`
 }
 
+type ConfigError struct {
+	Field   string
+	Message string
+}
+
+func (ce ConfigError) Error() string {
+	return fmt.Sprintf("%s: %s", ce.Field, ce.Message)
+}
+
 var errorExpl = map[string]map[error]string{
 	"Logging.Adapter":  map[error]string{validator.ErrZeroValue: "An adapter is required. Valid Options: SQLite3"},
 	"Logging.Database": map[error]string{validator.ErrZeroValue: "You must specify the name of the logging database."},
@@ -84,7 +93,6 @@ func validateUsers(v interface{}, param string) error {
 						if strings.Contains(errorMsg, "%s") {
 							errorMsg = fmt.Sprintf(errorExpl[k][err], k)
 						}
-						fmt.Println(errorMsg)
 					}
 				}
 			}
@@ -93,12 +101,14 @@ func validateUsers(v interface{}, param string) error {
 	return nil
 }
 
-func LoadConfig(configFile string) (*Config, error) {
+func LoadConfig(configFile string) (*Config, []error) {
 	var c Config
 	_, err := toml.DecodeFile(configFile, &c)
 	if err != nil {
 		log.Fatalf("Cannot load config file! Error: %s\n", err)
 	}
+
+	var errs []error
 
 	validator.SetValidationFunc("hasusers", validateUsers)
 	isValid, errMap := validator.Validate(c)
@@ -106,16 +116,12 @@ func LoadConfig(configFile string) (*Config, error) {
 	if !isValid {
 		for k, v := range errMap {
 			for _, err := range v {
-				errorMsg := errorExpl[k][err]
-				if strings.Contains(errorMsg, "%s") {
-					errorMsg = fmt.Sprintf(errorExpl[k][err], k)
-				}
-				fmt.Println(errorMsg)
+				errs = append(errs, &ConfigError{k, errorExpl[k][err]})
 			}
 		}
 	}
 
 	// TODO: Config validation, default values, etc
 
-	return &c, nil
+	return &c, errs
 }
