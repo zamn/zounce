@@ -71,18 +71,21 @@ func TestPartialFileSafeDefaults(t *testing.T) {
 		errors.New("Logging.Adapter: An adapter is required. Valid Options: SQLite3"),
 		errors.New("Logging.Database: You must specify the name of the logging database."),
 		errors.New("[users.zamn] -> You must specify a nickname in order to connect to an IRC server."),
-		errors.New("[users.zamn] -> You must specify a alternate nickname in order to connect to an IRC server."), errors.New("[users.zamn] -> You must specify the CA for your certificate to verify."), errors.New("[users.zamn] -> You must have at least 1 certificate on your user in order to authenticate.")}
+		errors.New("[users.zamn] -> You must specify a alternate nickname in order to connect to an IRC server."),
+		errors.New("[users.zamn] -> You must specify the CA for your certificate to verify."),
+		errors.New("[users.zamn] -> You must have at least 1 certificate on your user in order to authenticate."),
+	}
 
 	sort.Sort(ByErrorFunc(expected))
 	sort.Sort(ByErrorFunc(err))
 
-	if len(err) != 6 {
+	if len(err) != len(expected) {
 		log.Fatalf("Invalid number of errors returned for %s", PartialFile)
 	}
 
-	for i := 0; i < 6; i++ {
+	for i := 0; i < len(expected); i++ {
 		if err[i].Error() != expected[i].Error() {
-			log.Fatalf("Expected: \"%s\" and got: \"%s\"", expected[i], err[i])
+			log.Fatalf("Expected: \"%s\" -- got: \"%s\"", expected[i], err[i])
 		}
 	}
 
