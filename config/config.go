@@ -13,8 +13,8 @@ import (
 type Config struct {
 	Title   string
 	Port    int
-	Logging LogInfo         `validate:"hasusers"`
-	Users   map[string]User `validate:"hasusers"`
+	Logging LogInfo
+	Users   map[string]User `validate:"nonzero,hasusers"`
 }
 
 type LogInfo struct {
@@ -27,9 +27,9 @@ type User struct {
 	AltNick  string `validate:"nonzero,max=9"`
 	Username string
 	Realname string
-	AuthInfo Auth            `toml:"auth"`
-	Certs    map[string]Cert `validate:"min=1"`
-	Networks map[string]Network
+	AuthInfo Auth               `toml:"auth"`
+	Certs    map[string]Cert    `validate:"min=1"`
+	Networks map[string]Network `validate:"validnetworks"`
 }
 
 type Cert struct {
@@ -60,45 +60,67 @@ func (ce ConfigError) Error() string {
 	return fmt.Sprintf("%s: %s", ce.Field, ce.Message)
 }
 
+type MultiError struct {
+	Errors []error
+}
+
+func (me MultiError) Error() string {
+	var errStr string
+	for _, e := range me.Errors {
+		errStr += ", " + e.Error()
+	}
+	errStr = strings.TrimLeft(errStr, ",")
+	return fmt.Sprintf("%s", errStr)
+}
+
+type UserError struct {
+	User    string
+	Message string
+}
+
+func (ue UserError) Error() string {
+	return fmt.Sprintf("[users.%s] -> %s", ue.User, ue.Message)
+}
+
+type UsersError struct {
+	Field   string
+	Message string
+}
+
 var errorExpl = map[string]map[error]string{
 	"Logging.Adapter":  map[error]string{validator.ErrZeroValue: "An adapter is required. Valid Options: SQLite3"},
 	"Logging.Database": map[error]string{validator.ErrZeroValue: "You must specify the name of the logging database."},
-	"Nick":             map[error]string{validator.ErrZeroValue: "ERROR [users.%s]: You must specify a nickname in order to connect to an IRC server.", validator.ErrMax: "ERROR [users.%s]: Nickname can only be 9 characters long."},
-	"AltNick":          map[error]string{validator.ErrZeroValue: "ERROR [users.%s]: You must specify a alternate nickname in order to connect to an IRC server.", validator.ErrMax: "ERROR [users.%s]: Altenate nickname can only be 9 characters long."},
-	"Certs":            map[error]string{validator.ErrZeroValue: "ERROR [users.%s]: You must specify at least one certificate in order to authenticate to zounce.", validator.ErrMin: "ERROR [users.%s]: You must have at least 1 certificate on your user in order to authenticate."},
+	"Nick":             map[error]string{validator.ErrZeroValue: "You must specify a nickname in order to connect to an IRC server.", validator.ErrMax: "Nickname can only be 9 characters long."},
+	"AltNick":          map[error]string{validator.ErrZeroValue: "You must specify a alternate nickname in order to connect to an IRC server.", validator.ErrMax: "Altenate nickname can only be 9 characters long."},
+	"Certs":            map[error]string{validator.ErrZeroValue: "You must specify at least one certificate in order to authenticate to zounce.", validator.ErrMin: "You must have at least 1 certificate on your user in order to authenticate."},
 	"Users":            map[error]string{validator.ErrZeroValue: "You must specify at least one user in order to use to zounce."},
 	"AuthInfo.CAPath":  map[error]string{validator.ErrZeroValue: "You must specify the CA for your certificate to verify."},
+}
+
+func validateNetworks(v interface{}, param string) error {
 }
 
 func validateUsers(v interface{}, param string) error {
 	st := reflect.ValueOf(v)
 
-	/*
-		defValMap := map[string]string{
-			"Logging.Adapter":  "SQLite3",
-			"Logging.Database": "zounce",
-			"Nick":             "zounceuser",
-			"AltNick":          "zounceuser-alt",
-		}
-	*/
-
+	var mError MultiError
 	if st.Kind() == reflect.Map {
 		keys := st.MapKeys()
-		for _, k := range keys {
-			isValid, errMap := validator.Validate(st.MapIndex(k).Interface())
+		for _, user := range keys {
+			isValid, errMap := validator.Validate(st.MapIndex(user).Interface())
 			if !isValid {
 				for k, v := range errMap {
 					for _, err := range v {
 						errorMsg := errorExpl[k][err]
-						if strings.Contains(errorMsg, "%s") {
-							errorMsg = fmt.Sprintf(errorExpl[k][err], k)
+						if len(errorMsg) > 0 {
+							mError.Errors = append(mError.Errors, &UserError{user.String(), errorMsg})
 						}
 					}
 				}
 			}
 		}
 	}
-	return nil
+	return mError
 }
 
 func LoadConfig(configFile string) (*Config, []error) {
@@ -111,12 +133,31 @@ func LoadConfig(configFile string) (*Config, []error) {
 	var errs []error
 
 	validator.SetValidationFunc("hasusers", validateUsers)
+	validator.SetValidationFunc("validnetworks", validateNetworks)
 	isValid, errMap := validator.Validate(c)
 
 	if !isValid {
 		for k, v := range errMap {
 			for _, err := range v {
-				errs = append(errs, &ConfigError{k, errorExpl[k][err]})
+				switch reflect.TypeOf(err).String() {
+				case "config.MultiError":
+					errors := reflect.ValueOf(err).FieldByName("Errors")
+					for i := 0; i < errors.Len(); i++ {
+						ue := errors.Index(i).Interface().(*UserError)
+						errs = append(errs, ue)
+					}
+					break
+				case "*errors.errorString":
+					kErr := errorExpl[k][err]
+					if len(kErr) > 0 {
+						errs = append(errs, &ConfigError{k, kErr})
+					} else {
+						errs = append(errs, &ConfigError{k, err.Error()})
+					}
+				default:
+					fmt.Println("log this?")
+					break
+				}
 			}
 		}
 	}

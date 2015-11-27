@@ -21,9 +21,9 @@ port = 7777
 
     [users.zamn.certs]
 
-    # desktop pc
-    [users.zamn.certs.desktop]
-    cert_path = "certs/zamn.crt"
+      # desktop pc
+      [users.zamn.certs.desktop]
+      cert_path = "certs/zamn.crt"
 
     [users.zamn.networks]
 

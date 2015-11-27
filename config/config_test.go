@@ -48,6 +48,7 @@ func TestEmptyFileSafeDefaults(t *testing.T) {
 
 func TestPartialFileSafeDefaults(t *testing.T) {
 	c, err := LoadConfig(PartialFile)
+	fmt.Println(err)
 
 	if len(err) == 0 {
 		log.Fatalf("Failed to load config file! Error: %s\n", err)
