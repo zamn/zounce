@@ -98,6 +98,7 @@ var errorExpl = map[string]map[error]string{
 }
 
 func validateNetworks(v interface{}, param string) error {
+	return nil
 }
 
 func validateUsers(v interface{}, param string) error {
