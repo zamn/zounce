@@ -8,48 +8,13 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/go-validator/validator"
+	"github.com/zamN/zounce/user"
 )
 
 type Config struct {
-	Title   string
-	Port    int
-	Logging LogInfo
-	Users   map[string]User `validate:"nonzero,hasusers"`
-}
-
-type LogInfo struct {
-	Adapter  string `toml:"adapter" validate:"nonzero"`
-	Database string `toml:"database" validate:"nonzero"`
-}
-
-type User struct {
-	Nick     string `validate:"nonzero,max=9"`
-	AltNick  string `validate:"nonzero,max=9"`
-	Username string
-	Realname string
-	AuthInfo Auth               `toml:"auth"`
-	Certs    map[string]Cert    `validate:"min=1"`
-	Networks map[string]Network `validate:"validnetworks"`
-}
-
-type Cert struct {
-	Path string `toml:"cert_path" validate:"nonzero"`
-}
-
-type Network struct {
-	Name        string   `validate:"nonzero"`
-	Servers     []string `validate:"min=1"`
-	Password    string
-	PerformInfo Perform `toml:"perform"`
-}
-
-type Perform struct {
-	Channels []string
-	Commands []string
-}
-
-type Auth struct {
-	CAPath string `toml:"ca_path" validate:"nonzero"`
+	Title string
+	Port  int
+	Users map[string]user.User `validate:"nonzero,hasusers"`
 }
 
 type ConfigError struct {
@@ -93,7 +58,8 @@ func (ne NetworkError) Error() string {
 }
 
 var errorExpl = map[string]map[error]string{
-	"Logging.Adapter":  map[error]string{validator.ErrZeroValue: "An adapter is required. Valid Options: SQLite3"},
+	// TODO: Don't hardcode adapter 'valid options'
+	"Logging.Adapter":  map[error]string{validator.ErrZeroValue: "An adapter is required. Valid Options: SQLite3, Flatfile"},
 	"Logging.Database": map[error]string{validator.ErrZeroValue: "You must specify the name of the logging database."},
 	"Nick":             map[error]string{validator.ErrZeroValue: "You must specify a nickname in order to connect to an IRC server.", validator.ErrMax: "Nickname can only be 9 characters long."},
 	"AltNick":          map[error]string{validator.ErrZeroValue: "You must specify a alternate nickname in order to connect to an IRC server.", validator.ErrMax: "Altenate nickname can only be 9 characters long."},

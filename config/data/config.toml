@@ -4,17 +4,16 @@
 title = "Zounce Configuration"
 port = 7777
 
-[logging]
-    # TODO: Don't use SQLite if multiple users
-    adapter = "SQLite3"
-    database = "zounce"
-
 [users]
     [users.zamn]
     nick = "zamn"
     altnick = "zamn92"
     username = "zamn"
     realname = "Adam"
+
+    [users.zamn.logging]
+    adapter = "SQLite3"
+    database = "zounce"
 
     [users.zamn.auth]
     ca_path = "certs/ca.crt"

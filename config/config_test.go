@@ -7,24 +7,24 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+
+	"github.com/zamN/zounce/logging"
+	"github.com/zamN/zounce/net"
+	"github.com/zamN/zounce/net/perform"
+	"github.com/zamN/zounce/user"
+	"github.com/zamN/zounce/user/auth"
+	"github.com/zamN/zounce/user/cert"
 )
 
-var TemplateFile string
-var EmptyFile string
-var PartialFile string
-var BadNetworkFile string
-
-func setup() {
-	DataDir := "data/"
-	TemplateFile = DataDir + "config.toml"
-	EmptyFile = DataDir + "empty.toml"
-	PartialFile = DataDir + "partial.toml"
+var (
+	DataDir        = "data/"
+	TemplateFile   = DataDir + "config.toml"
+	EmptyFile      = DataDir + "empty.toml"
+	PartialFile    = DataDir + "partial.toml"
 	BadNetworkFile = DataDir + "badnetwork.toml"
-}
+)
 
 func TestMain(m *testing.M) {
-	setup()
-
 	retCode := m.Run()
 
 	os.Exit(retCode)
@@ -55,9 +55,9 @@ func (bef ByErrorFunc) Len() int {
 	return len(bef)
 }
 
-func sameErrors(expected, err []error, t *testing.T) bool {
+func sameErrors(expected, err []error, dataFile string, t *testing.T) bool {
 	if len(err) != len(expected) {
-		t.Fatalf("Invalid number of errors returned for %s. Expected: %s, Got: %s", PartialFile, len(expected), len(err))
+		t.Fatalf("Invalid number of errors returned for %s. Expected: %s, Got: %s\n", dataFile, len(expected), len(err))
 	}
 
 	sort.Sort(ByErrorFunc(expected))
@@ -82,32 +82,32 @@ func TestValidConfig(t *testing.T) {
 	expectedConfig := &Config{
 		Title: "Zounce Configuration",
 		Port:  7777,
-		Logging: LogInfo{
-			Adapter:  "SQLite3",
-			Database: "zounce",
-		},
-		Users: map[string]User{
-			"zamn": User{
+		Users: map[string]user.User{
+			"zamn": user.User{
 				Nick:     "zamn",
 				AltNick:  "zamn92",
 				Username: "zamn",
 				Realname: "Adam",
-				AuthInfo: Auth{
+				AuthInfo: auth.Auth{
 					CAPath: "certs/ca.crt",
 				},
-				Certs: map[string]Cert{
-					"desktop": Cert{
+				Logging: logging.LogInfo{
+					Adapter:  "SQLite3",
+					Database: "zounce",
+				},
+				Certs: map[string]cert.Cert{
+					"desktop": cert.Cert{
 						Path: "certs/zamn.crt",
 					},
 				},
-				Networks: map[string]Network{
-					"GameSurge": Network{
+				Networks: map[string]net.Network{
+					"GameSurge": net.Network{
 						Name: "The GameSurge Network",
 						Servers: []string{
 							"irc.gamesurge.net:6666",
 						},
 						Password: "",
-						PerformInfo: Perform{
+						PerformInfo: perform.Perform{
 							Channels: []string{
 								"#zamN",
 							},
@@ -137,7 +137,7 @@ func TestNetworkErrors(t *testing.T) {
 		errors.New("[users.zamn] -> [networks.GameSurge] -> You must specify at least one server in order to use this network with zounce."),
 	}
 
-	sameErrors(expected, err, t)
+	sameErrors(expected, err, BadNetworkFile, t)
 }
 
 func TestEmptyFileErrors(t *testing.T) {
@@ -149,11 +149,9 @@ func TestEmptyFileErrors(t *testing.T) {
 
 	expected := []error{
 		errors.New("Users: You must specify at least one user in order to use to zounce."),
-		errors.New("Logging.Database: You must specify the name of the logging database."),
-		errors.New("Logging.Adapter: An adapter is required. Valid Options: SQLite3"),
 	}
 
-	sameErrors(expected, err, t)
+	sameErrors(expected, err, EmptyFile, t)
 }
 
 func TestPartialFileErrors(t *testing.T) {
@@ -164,10 +162,13 @@ func TestPartialFileErrors(t *testing.T) {
 	}
 
 	expected := []error{
-		errors.New("Logging.Adapter: An adapter is required. Valid Options: SQLite3"),
-		errors.New("Logging.Database: You must specify the name of the logging database."),
+		errors.New("[users.zamn] -> An adapter is required. Valid Options: SQLite3, Flatfile"),
+		errors.New("[users.zamn] -> You must specify the name of the logging database."),
 		errors.New("[users.zamn] -> You must specify a nickname in order to connect to an IRC server."),
-		errors.New("[users.zamn] -> You must specify a alternate nickname in order to connect to an IRC server."), errors.New("[users.zamn] -> You must specify the CA for your certificate to verify."), errors.New("[users.zamn] -> You must have at least 1 certificate on your user in order to authenticate.")}
+		errors.New("[users.zamn] -> You must specify a alternate nickname in order to connect to an IRC server."),
+		errors.New("[users.zamn] -> You must specify the CA for your certificate to verify."),
+		errors.New("[users.zamn] -> You must have at least 1 certificate on your user in order to authenticate."),
+	}
 
-	sameErrors(expected, err, t)
+	sameErrors(expected, err, PartialFile, t)
 }

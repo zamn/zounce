@@ -4,11 +4,6 @@
 title = "This is a bad config!"
 port = 7777
 
-[logging]
-    # TODO: Don't use SQLite if multiple users
-    adapter = "SQLite3"
-    database = "zounce"
-
 [users]
     [users.zamn]
     nick = "zamn"
@@ -18,6 +13,12 @@ port = 7777
 
     [users.zamn.auth]
     ca_path = "certs/ca.crt"
+
+    [users.zamn.logging]
+    # TODO: Don't use SQLite if multiple users
+    adapter = "SQLite3"
+    database = "zounce"
+
 
     [users.zamn.certs]
 
