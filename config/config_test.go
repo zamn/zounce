@@ -15,10 +15,11 @@ var PartialFile string
 var BadNetworkFile string
 
 func setup() {
-	TemplateFile = "config.toml"
-	EmptyFile = "empty.toml"
-	PartialFile = "partial.toml"
-	BadNetworkFile = "badnetwork.toml"
+	DataDir := "data/"
+	TemplateFile = DataDir + "config.toml"
+	EmptyFile = DataDir + "empty.toml"
+	PartialFile = DataDir + "partial.toml"
+	BadNetworkFile = DataDir + "badnetwork.toml"
 }
 
 func TestMain(m *testing.M) {
