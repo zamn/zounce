@@ -1,7 +1,7 @@
 # Zounce example configuration file
 # ----------------------------------
 
-title = "Zounce Configuration"
+title = "This is a bad config!"
 port = 7777
 
 [logging]
@@ -28,9 +28,7 @@ port = 7777
     [users.zamn.networks]
 
         [users.zamn.networks.GameSurge]
-        name = "The GameSurge Network"
         servers = [
-            "irc.gamesurge.net:6666"
         ]
 
         [users.zamn.networks.GameSurge.perform]
