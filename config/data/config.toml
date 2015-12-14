@@ -3,6 +3,7 @@
 
 title = "Zounce Configuration"
 port = 7777
+ca_path = "certs/ca.crt"
 
 [users]
     [users.zamn]
@@ -14,9 +15,6 @@ port = 7777
     [users.zamn.logging]
     adapter = "SQLite3"
     database = "zounce"
-
-    [users.zamn.auth]
-    ca_path = "certs/ca.crt"
 
     [users.zamn.certs]
 
