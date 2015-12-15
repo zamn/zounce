@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
-	"sort"
 	"testing"
 
 	"github.com/go-validator/validator"
@@ -86,35 +85,20 @@ func TestValidTomlTemplate(t *testing.T) {
 	}
 }
 
-type ByErrorFunc []error
-
-func (bef ByErrorFunc) Less(i, j int) bool {
-	return bef[i].Error() < bef[j].Error()
-}
-
-func (bef ByErrorFunc) Swap(i, j int) {
-	bef[i], bef[j] = bef[j], bef[i]
-}
-
-func (bef ByErrorFunc) Len() int {
-	return len(bef)
-}
-
-func sameErrors(expected, err []error, dataFile string, t *testing.T) bool {
-	if len(err) != len(expected) {
-		t.Fatalf("Invalid number of errors returned for %s. Expected: %d, Got: %d\n", dataFile, len(expected), len(err))
-	}
-
-	sort.Sort(ByErrorFunc(expected))
-	sort.Sort(ByErrorFunc(err))
-
-	for i := 0; i < len(expected); i++ {
-		if err[i].Error() != expected[i].Error() {
-			t.Fatalf("Expected: \"%s\" and got: \"%s\"", expected[i], err[i])
+func contains(expected, err []error) bool {
+	var found bool
+	for _, ex := range expected {
+		found = false
+		for _, e := range err {
+			if ex.Error() == e.Error() {
+				found = true
+				// figure out how to throw !found in that loop...
+				break
+			}
 		}
 	}
 
-	return true
+	return found
 }
 
 func TestValidConfig(t *testing.T) {
@@ -149,7 +133,13 @@ func TestNetworkErrors(t *testing.T) {
 
 	expected = append(expected, expUserErrors.FormatErrors()...)
 
-	sameErrors(expected, err, BadNetworkFile, t)
+	if len(err) != len(expected) {
+		t.Fatalf("Invalid number of errors returned for %s. Expected: %d, Got: %d\n", PartialFile, len(expected), len(err))
+	}
+
+	if !contains(expected, err) {
+		t.Fatalf("Returned errors not equal to expected errors. Expected: %v, Got: %v\n", expected, err)
+	}
 }
 
 func TestEmptyFileErrors(t *testing.T) {
@@ -164,7 +154,13 @@ func TestEmptyFileErrors(t *testing.T) {
 		&ConfigError{"CAPath", errorExpl["CAPath"][validator.ErrZeroValue]},
 	}
 
-	sameErrors(expected, err, EmptyFile, t)
+	if len(err) != len(expected) {
+		t.Fatalf("Invalid number of errors returned for %s. Expected: %d, Got: %d\n", PartialFile, len(expected), len(err))
+	}
+
+	if !contains(expected, err) {
+		t.Fatalf("Returned errors not equal to expected errors. Expected: %v, Got: %v\n", expected, err)
+	}
 }
 
 func TestPartialFileErrors(t *testing.T) {
@@ -190,5 +186,11 @@ func TestPartialFileErrors(t *testing.T) {
 
 	expected = append(expected, expUserErrors.FormatErrors()...)
 
-	sameErrors(expected, err, PartialFile, t)
+	if len(err) != len(expected) {
+		t.Fatalf("Invalid number of errors returned for %s. Expected: %d, Got: %d\n", PartialFile, len(expected), len(err))
+	}
+
+	if !contains(expected, err) {
+		t.Fatalf("Returned errors not equal to expected errors. Expected: %v, Got: %v\n", expected, err)
+	}
 }
