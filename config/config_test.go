@@ -2,12 +2,15 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"reflect"
 	"testing"
 
-	"github.com/go-validator/validator"
+	"gopkg.in/validator.v2"
+
+	"github.com/zamN/zounce/config/confutils"
 	"github.com/zamN/zounce/logging"
 	"github.com/zamN/zounce/net"
 	"github.com/zamN/zounce/net/perform"
@@ -47,7 +50,7 @@ var (
 					},
 				},
 				Networks: map[string]net.Network{
-					"GameSurge": net.Network{
+					GSNet: net.Network{
 						Name: "The GameSurge Network",
 						Servers: []string{
 							"irc.gamesurge.net:6666",
@@ -120,15 +123,19 @@ func TestNetworkErrors(t *testing.T) {
 		t.Fatalf("Error(s) not found in bad networks config.")
 	}
 
-	expUserErrors := UserError{
+	servMinErr, _ := confutils.GetErrExpln("Servers", validator.ErrMin)
+	nameEmptyErr, _ := confutils.GetErrExpln("Name", validator.ErrZeroValue)
+	caPathEmptyErr, _ := confutils.GetErrExpln("CAPath", validator.ErrZeroValue)
+
+	expUserErrors := user.UserError{
 		User: BaseUser,
 		Errors: []error{
-			&NetworkError{GSNet, errorExpl["Servers"][validator.ErrMin]},
-			&NetworkError{GSNet, errorExpl["Name"][validator.ErrZeroValue]},
+			&net.NetworkError{GSNet, servMinErr},
+			&net.NetworkError{GSNet, nameEmptyErr},
 		},
 	}
 	expected := []error{
-		&ConfigError{"CAPath", errorExpl["CAPath"][validator.ErrZeroValue]},
+		&ConfigError{"CAPath", caPathEmptyErr},
 	}
 
 	expected = append(expected, expUserErrors.FormatErrors()...)
@@ -149,9 +156,15 @@ func TestEmptyFileErrors(t *testing.T) {
 		t.Fatalf("Validated an empty configuration file!\n")
 	}
 
+	usersEmptyErr, _ := confutils.GetErrExpln("Users", validator.ErrZeroValue)
+	caPathEmptyErr, _ := confutils.GetErrExpln("CAPath", validator.ErrZeroValue)
+	titleEmptyErr, _ := confutils.GetErrExpln("Title", validator.ErrZeroValue)
+	portEmptyErr, _ := confutils.GetErrExpln("Port", validator.ErrZeroValue)
 	expected := []error{
-		&ConfigError{"Users", errorExpl["Users"][validator.ErrZeroValue]},
-		&ConfigError{"CAPath", errorExpl["CAPath"][validator.ErrZeroValue]},
+		&ConfigError{"Users", usersEmptyErr},
+		&ConfigError{"CAPath", caPathEmptyErr},
+		&ConfigError{"Title", titleEmptyErr},
+		&ConfigError{"Port", portEmptyErr},
 	}
 
 	if len(err) != len(expected) {
@@ -169,19 +182,26 @@ func TestPartialFileErrors(t *testing.T) {
 	if len(err) == 0 {
 		t.Fatalf("Validated a config with errors.")
 	}
+	fmt.Println("ERR", err)
+	adapterEmptyErr, _ := confutils.GetErrExpln("Logging.Adapter", validator.ErrZeroValue)
+	dbEmptyErr, _ := confutils.GetErrExpln("Logging.Database", validator.ErrZeroValue)
+	nickEmptyErr, _ := confutils.GetErrExpln("Nick", validator.ErrZeroValue)
+	altNickEmptyErr, _ := confutils.GetErrExpln("AltNick", validator.ErrZeroValue)
+	certsEmptyErr, _ := confutils.GetErrExpln("Certs", validator.ErrZeroValue)
+	caPathEmptyErr, _ := confutils.GetErrExpln("Certs", validator.ErrZeroValue)
 
-	expUserErrors := UserError{
+	expUserErrors := user.UserError{
 		User: BaseUser,
 		Errors: []error{
-			errors.New(errorExpl["Logging.Adapter"][validator.ErrZeroValue]),
-			errors.New(errorExpl["Logging.Database"][validator.ErrZeroValue]),
-			errors.New(errorExpl["Nick"][validator.ErrZeroValue]),
-			errors.New(errorExpl["AltNick"][validator.ErrZeroValue]),
-			errors.New(errorExpl["Certs"][validator.ErrZeroValue]),
+			errors.New(adapterEmptyErr),
+			errors.New(dbEmptyErr),
+			errors.New(nickEmptyErr),
+			errors.New(altNickEmptyErr),
+			errors.New(certsEmptyErr),
 		},
 	}
 	expected := []error{
-		&ConfigError{"CAPath", errorExpl["CAPath"][validator.ErrZeroValue]},
+		&ConfigError{"CAPath", caPathEmptyErr},
 	}
 
 	expected = append(expected, expUserErrors.FormatErrors()...)
