@@ -2,7 +2,6 @@ package config
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"os/exec"
 	"reflect"
@@ -61,7 +60,7 @@ var (
 								"#zamN",
 							},
 							Commands: []string{
-								"/msg AuthServ@Services.Gamesurge.net user pass",
+								"/msg AuthServ@Services.Gamesurge.net auth user pass",
 							},
 						},
 					},
@@ -88,20 +87,44 @@ func TestValidTomlTemplate(t *testing.T) {
 	}
 }
 
-func contains(expected, err []error) bool {
-	var found bool
-	for _, ex := range expected {
-		found = false
-		for _, e := range err {
-			if ex.Error() == e.Error() {
-				found = true
-				// figure out how to throw !found in that loop...
-				break
+func equals(exConfErr, confErr *confutils.ConfigError) bool {
+	if exConfErr.Type == confErr.Type {
+		if exConfErr.Id == confErr.Id {
+			if len(exConfErr.Errors) == len(confErr.Errors) {
+				return containsAll(exConfErr.Errors, confErr.Errors)
+			}
+		}
+	}
+	return false
+}
+
+// Probably will need to be improved in the future
+func containsAll(exInput, err []error) bool {
+	// This is probably horribly slow
+	var expected []error
+	expected = append(expected, exInput...)
+
+	for _, e := range err {
+		confErr, ok := e.(*confutils.ConfigError)
+		for i, ex := range expected {
+			if !ok {
+				if e.Error() == ex.Error() {
+					expected = append(expected[:i], expected[i+1:]...)
+					break
+				}
+			} else {
+				exConfErr, ok := ex.(*confutils.ConfigError)
+				if ok {
+					if equals(exConfErr, confErr) {
+						expected = append(expected[:i], expected[i+1:]...)
+						break
+					}
+				}
 			}
 		}
 	}
 
-	return found
+	return len(expected) == 0
 }
 
 func TestValidConfig(t *testing.T) {
@@ -123,29 +146,65 @@ func TestNetworkErrors(t *testing.T) {
 		t.Fatalf("Error(s) not found in bad networks config.")
 	}
 
-	servMinErr, _ := confutils.GetErrExpln("Servers", validator.ErrMin)
-	nameEmptyErr, _ := confutils.GetErrExpln("Name", validator.ErrZeroValue)
-	caPathEmptyErr, _ := confutils.GetErrExpln("CAPath", validator.ErrZeroValue)
+	servMinErr, _ := confutils.GetErrExpln(confutils.NetworkType, "Servers", validator.ErrMin)
+	nameEmptyErr, _ := confutils.GetErrExpln(confutils.NetworkType, "Name", validator.ErrZeroValue)
+	caPathEmptyErr, _ := confutils.GetErrExpln(confutils.BaseType, "CAPath", validator.ErrZeroValue)
 
-	expUserErrors := user.UserError{
-		User: BaseUser,
+	expUserErrors := &confutils.ConfigError{
+		Type: confutils.UserType,
+		Id:   "Users",
 		Errors: []error{
-			&net.NetworkError{GSNet, servMinErr},
-			&net.NetworkError{GSNet, nameEmptyErr},
+			&confutils.ConfigError{
+				Type: confutils.UserType,
+				Id:   "zamn",
+				Errors: []error{
+					&confutils.ConfigError{
+						Type: confutils.NetworkType,
+						Id:   "Networks",
+						Errors: []error{
+							&confutils.ConfigError{
+								Type: confutils.NetworkType,
+								Id:   "GameSurge",
+								Errors: []error{
+									&confutils.ConfigError{
+										Type: confutils.NetworkType,
+										Id:   "Name",
+										Errors: []error{
+											errors.New(nameEmptyErr),
+										},
+									},
+									&confutils.ConfigError{
+										Type: confutils.NetworkType,
+										Id:   "Servers",
+										Errors: []error{
+											errors.New(servMinErr),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 	expected := []error{
-		&ConfigError{"CAPath", caPathEmptyErr},
+		&confutils.ConfigError{
+			Type: confutils.BaseType,
+			Id:   "CAPath",
+			Errors: []error{
+				errors.New(caPathEmptyErr),
+			},
+		},
+		expUserErrors,
 	}
-
-	expected = append(expected, expUserErrors.FormatErrors()...)
 
 	if len(err) != len(expected) {
-		t.Fatalf("Invalid number of errors returned for %s. Expected: %d, Got: %d\n", PartialFile, len(expected), len(err))
+		t.Fatalf("Invalid number of errors returned for %s.\nExpected: %d\nGot: %d\n", PartialFile, len(expected), len(err))
 	}
 
-	if !contains(expected, err) {
-		t.Fatalf("Returned errors not equal to expected errors. Expected: %v, Got: %v\n", expected, err)
+	if !containsAll(expected, err) {
+		t.Fatalf("Returned errors not equal to expected errors.\nExpected: %v\nGot: %v\n", expected, err)
 	}
 }
 
@@ -156,23 +215,48 @@ func TestEmptyFileErrors(t *testing.T) {
 		t.Fatalf("Validated an empty configuration file!\n")
 	}
 
-	usersEmptyErr, _ := confutils.GetErrExpln("Users", validator.ErrZeroValue)
-	caPathEmptyErr, _ := confutils.GetErrExpln("CAPath", validator.ErrZeroValue)
-	titleEmptyErr, _ := confutils.GetErrExpln("Title", validator.ErrZeroValue)
-	portEmptyErr, _ := confutils.GetErrExpln("Port", validator.ErrZeroValue)
+	usersEmptyErr, _ := confutils.GetErrExpln(confutils.UserType, "Users", validator.ErrZeroValue)
+	caPathEmptyErr, _ := confutils.GetErrExpln(confutils.BaseType, "CAPath", validator.ErrZeroValue)
+	titleEmptyErr, _ := confutils.GetErrExpln(confutils.BaseType, "Title", validator.ErrZeroValue)
+	portEmptyErr, _ := confutils.GetErrExpln(confutils.BaseType, "Port", validator.ErrZeroValue)
+
 	expected := []error{
-		&ConfigError{"Users", usersEmptyErr},
-		&ConfigError{"CAPath", caPathEmptyErr},
-		&ConfigError{"Title", titleEmptyErr},
-		&ConfigError{"Port", portEmptyErr},
+		&confutils.ConfigError{
+			Type: confutils.UserType,
+			Id:   "Users",
+			Errors: []error{
+				errors.New(usersEmptyErr),
+			},
+		},
+		&confutils.ConfigError{
+			Type: confutils.BaseType,
+			Id:   "CAPath",
+			Errors: []error{
+				errors.New(caPathEmptyErr),
+			},
+		},
+		&confutils.ConfigError{
+			Type: confutils.BaseType,
+			Id:   "Title",
+			Errors: []error{
+				errors.New(titleEmptyErr),
+			},
+		},
+		&confutils.ConfigError{
+			Type: confutils.BaseType,
+			Id:   "Port",
+			Errors: []error{
+				errors.New(portEmptyErr),
+			},
+		},
 	}
 
 	if len(err) != len(expected) {
-		t.Fatalf("Invalid number of errors returned for %s. Expected: %d, Got: %d\n", PartialFile, len(expected), len(err))
+		t.Fatalf("Invalid number of errors returned for %s.\nExpected: %d\nGot: %d\n", PartialFile, len(expected), len(err))
 	}
 
-	if !contains(expected, err) {
-		t.Fatalf("Returned errors not equal to expected errors. Expected: %v, Got: %v\n", expected, err)
+	if !containsAll(expected, err) {
+		t.Fatalf("Returned errors not equal to expected errors.\nExpected: %v\nGot: %v\n", expected, err)
 	}
 }
 
@@ -182,35 +266,87 @@ func TestPartialFileErrors(t *testing.T) {
 	if len(err) == 0 {
 		t.Fatalf("Validated a config with errors.")
 	}
-	fmt.Println("ERR", err)
-	adapterEmptyErr, _ := confutils.GetErrExpln("Logging.Adapter", validator.ErrZeroValue)
-	dbEmptyErr, _ := confutils.GetErrExpln("Logging.Database", validator.ErrZeroValue)
-	nickEmptyErr, _ := confutils.GetErrExpln("Nick", validator.ErrZeroValue)
-	altNickEmptyErr, _ := confutils.GetErrExpln("AltNick", validator.ErrZeroValue)
-	certsEmptyErr, _ := confutils.GetErrExpln("Certs", validator.ErrZeroValue)
-	caPathEmptyErr, _ := confutils.GetErrExpln("Certs", validator.ErrZeroValue)
 
-	expUserErrors := user.UserError{
-		User: BaseUser,
+	adapterEmptyErr, _ := confutils.GetErrExpln(confutils.UserType, "Logging.Adapter", validator.ErrZeroValue)
+	dbEmptyErr, _ := confutils.GetErrExpln(confutils.UserType, "Logging.Database", validator.ErrZeroValue)
+	nickEmptyErr, _ := confutils.GetErrExpln(confutils.UserType, "Nick", validator.ErrZeroValue)
+	altNickEmptyErr, _ := confutils.GetErrExpln(confutils.UserType, "AltNick", validator.ErrZeroValue)
+	certsEmptyErr, _ := confutils.GetErrExpln(confutils.CertType, "Certs", validator.ErrZeroValue)
+	caPathEmptyErr, _ := confutils.GetErrExpln(confutils.BaseType, "CAPath", validator.ErrZeroValue)
+	netBlockEmptyErr, _ := confutils.GetErrExpln(confutils.NetworkType, "Networks", validator.ErrZeroValue)
+
+	expUserErrors := &confutils.ConfigError{
+		Type: confutils.UserType,
+		Id:   "Users",
 		Errors: []error{
-			errors.New(adapterEmptyErr),
-			errors.New(dbEmptyErr),
-			errors.New(nickEmptyErr),
-			errors.New(altNickEmptyErr),
-			errors.New(certsEmptyErr),
+			&confutils.ConfigError{
+				Type: confutils.UserType,
+				Id:   "zamn",
+				Errors: []error{
+					&confutils.ConfigError{
+						Type: confutils.NetworkType,
+						Id:   "Networks",
+						Errors: []error{
+							errors.New(netBlockEmptyErr),
+						},
+					},
+					&confutils.ConfigError{
+						Type: confutils.CertType,
+						Id:   "Certs",
+						Errors: []error{
+							errors.New(certsEmptyErr),
+						},
+					},
+					&confutils.ConfigError{
+						Type: confutils.UserType,
+						Id:   "Logging.Adapter",
+						Errors: []error{
+							errors.New(adapterEmptyErr),
+						},
+					},
+					&confutils.ConfigError{
+						Type: confutils.UserType,
+						Id:   "Logging.Database",
+						Errors: []error{
+							errors.New(dbEmptyErr),
+						},
+					},
+					&confutils.ConfigError{
+						Type: confutils.UserType,
+						Id:   "Nick",
+						Errors: []error{
+							errors.New(nickEmptyErr),
+						},
+					},
+					&confutils.ConfigError{
+						Type: confutils.UserType,
+						Id:   "AltNick",
+						Errors: []error{
+							errors.New(altNickEmptyErr),
+						},
+					},
+				},
+			},
 		},
 	}
+
 	expected := []error{
-		&ConfigError{"CAPath", caPathEmptyErr},
+		&confutils.ConfigError{
+			Type: confutils.BaseType,
+			Id:   "CAPath",
+			Errors: []error{
+				errors.New(caPathEmptyErr),
+			},
+		},
+		expUserErrors,
 	}
 
-	expected = append(expected, expUserErrors.FormatErrors()...)
-
+	// Although this is checking at the baseline level, good enough
 	if len(err) != len(expected) {
-		t.Fatalf("Invalid number of errors returned for %s. Expected: %d, Got: %d\n", PartialFile, len(expected), len(err))
+		t.Fatalf("Invalid number of errors returned for %s.\nExpected: %d\nGot: %d\n", PartialFile, len(expected), len(err))
 	}
 
-	if !contains(expected, err) {
-		t.Fatalf("Returned errors not equal to expected errors. Expected: %v, Got: %v\n", expected, err)
+	if !containsAll(expected, err) {
+		t.Fatalf("Returned errors not equal to expected errors.\nExpected: %v\nGot: %v\n", expected, err)
 	}
 }

@@ -37,7 +37,7 @@ ca_path = "certs/ca.crt"
 
         # TODO: implement
         commands = [
-            "/msg AuthServ@Services.Gamesurge.net user pass"
+            "/msg AuthServ@Services.Gamesurge.net auth user pass"
         ]
 
         # TODO: test freenode active chans
