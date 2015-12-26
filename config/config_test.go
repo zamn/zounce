@@ -275,6 +275,7 @@ func TestPartialFileErrors(t *testing.T) {
 	caPathEmptyErr, _ := confutils.GetErrExpln(confutils.BaseType, "CAPath", validator.ErrZeroValue)
 	netBlockEmptyErr, _ := confutils.GetErrExpln(confutils.NetworkType, "Networks", validator.ErrZeroValue)
 
+	// TODO: Create generators(?) for these monsters.
 	expUserErrors := &confutils.ConfigError{
 		Type: confutils.UserType,
 		Id:   "Users",

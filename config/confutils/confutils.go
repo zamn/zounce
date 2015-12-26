@@ -11,13 +11,12 @@ import (
 
 type ErrorType int
 
+// Only fields in the User struct which have custom validations
 const (
 	BaseType ErrorType = iota
 	UserType
 	NetworkType
-	LoggingType
 	CertType
-	PerformType
 )
 
 func (et ErrorType) String() string {
@@ -31,17 +30,12 @@ func (et ErrorType) String() string {
 	case NetworkType:
 		return "NetworkType"
 		break
-	case LoggingType:
-		return "LoggingType"
-		break
 	case CertType:
 		return "CertType"
 		break
-	case PerformType:
-		return "PerformType"
-		break
 	}
-	return "Unknown ErrorTYpe"
+
+	return "Unknown ErrorType"
 }
 
 type ConfigError struct {
@@ -66,27 +60,22 @@ func (ce *ConfigError) Error() string {
 	case NetworkType:
 		tag = fmt.Sprintf("[networks.%s]", ce.Id)
 		break
-	case LoggingType:
-		tag = fmt.Sprintf("[logging.%s]", ce.Id)
-		break
 	case CertType:
 		tag = fmt.Sprintf("[certs.%s]", ce.Id)
-		break
-	case PerformType:
-		tag = fmt.Sprintf("[perform.%s]", ce.Id)
 		break
 	default:
 		tag = fmt.Sprintf("[unknown.%s]", ce.Id)
 		break
 	}
 
-	if len(ce.Errors) == 1 {
-		return fmt.Sprintf("%s %s", tag, ce.Errors[0])
-	} else if len(ce.Errors) > 0 {
+	if len(ce.Errors) > 0 {
+		if len(ce.Errors) == 1 {
+			return fmt.Sprintf("%s %s", tag, ce.Errors[0])
+		}
 		return fmt.Sprintf("%s %s", tag, "There are multiple errors for this block.")
-	} else {
-		return fmt.Sprintf("%s %s", tag, "There are no errors for this block.")
 	}
+
+	return fmt.Sprintf("%s %s", tag, "There are no errors for this block.")
 }
 
 // A ConfigError is only a container if it contains
@@ -156,19 +145,9 @@ var errExpl = map[ErrorType]map[string]TextConvert{
 	},
 }
 
-var errorExpl = map[string]map[error]string{
-	// TODO: Don't hardcode adapter 'valid options', also this is pretty ugly
-	"Logging.Adapter":  map[error]string{validator.ErrZeroValue: "An adapter is required. Valid Options: SQLite3, Flatfile"},
-	"Logging.Database": map[error]string{validator.ErrZeroValue: "You must specify the name of the logging database."},
-	"Nick":             map[error]string{validator.ErrZeroValue: "You must specify a nickname in order to connect to an IRC server.", validator.ErrMax: "Nickname can only be 9 characters long."},
-	"AltNick":          map[error]string{validator.ErrZeroValue: "You must specify a alternate nickname in order to connect to an IRC server.", validator.ErrMax: "Altenate nickname can only be 9 characters long."},
-	"Certs":            map[error]string{validator.ErrZeroValue: "You must specify at least one certificate in order to authenticate to zounce."},
-	"Users":            map[error]string{validator.ErrZeroValue: "You must specify at least one user in order to use to zounce."},
-	"Servers":          map[error]string{validator.ErrMin: "You must specify at least one server in order to use this network with zounce."},
-	"Name":             map[error]string{validator.ErrZeroValue: "You must specify a name for this network!"},
-	"CAPath":           map[error]string{validator.ErrZeroValue: "You must specify the CA for your user certificates to validate against."},
-	"Title":            map[error]string{validator.ErrZeroValue: "Title not supplied, using default title 'Zounce Config'"},
-	"Port":             map[error]string{validator.ErrZeroValue: "Port not supplied, using default port 1337"},
+func GetErrExpln(eType ErrorType, field string, err error) (string, bool) {
+	expln, ok := errExpl[eType][field][err]
+	return expln, ok
 }
 
 func ValidateMap(container *ConfigError, segMap reflect.Value) error {
@@ -222,9 +201,4 @@ func ValidateMap(container *ConfigError, segMap reflect.Value) error {
 	}
 
 	return nil
-}
-
-func GetErrExpln(eType ErrorType, field string, err error) (string, bool) {
-	expln, ok := errExpl[eType][field][err]
-	return expln, ok
 }
