@@ -67,9 +67,27 @@ func LoadConfig(configFile string) (*Config, []error) {
 	if errMap != nil {
 		errMap := errMap.(validator.ErrorMap)
 
+		// TODO: Some way to display warnings lol.
+		warnings := map[string](func()){
+			"Title": (func() {
+				c.Title = "Zounce Configuration"
+			}),
+			"Port": (func() {
+				c.Port = 7777
+			}),
+		}
+
 		for _, errArr := range errMap {
 			for _, err := range errArr {
-				errs = append(errs, err)
+				confErr, ok := err.(*confutils.ConfigError)
+				if ok {
+					defFunc, ok := warnings[confErr.Id]
+					if ok {
+						defFunc()
+					} else {
+						errs = append(errs, err)
+					}
+				}
 			}
 		}
 	}

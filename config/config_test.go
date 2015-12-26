@@ -217,8 +217,6 @@ func TestEmptyFileErrors(t *testing.T) {
 
 	usersEmptyErr, _ := confutils.GetErrExpln(confutils.UserType, "Users", validator.ErrZeroValue)
 	caPathEmptyErr, _ := confutils.GetErrExpln(confutils.BaseType, "CAPath", validator.ErrZeroValue)
-	titleEmptyErr, _ := confutils.GetErrExpln(confutils.BaseType, "Title", validator.ErrZeroValue)
-	portEmptyErr, _ := confutils.GetErrExpln(confutils.BaseType, "Port", validator.ErrZeroValue)
 
 	expected := []error{
 		&confutils.ConfigError{
@@ -233,20 +231,6 @@ func TestEmptyFileErrors(t *testing.T) {
 			Id:   "CAPath",
 			Errors: []error{
 				errors.New(caPathEmptyErr),
-			},
-		},
-		&confutils.ConfigError{
-			Type: confutils.BaseType,
-			Id:   "Title",
-			Errors: []error{
-				errors.New(titleEmptyErr),
-			},
-		},
-		&confutils.ConfigError{
-			Type: confutils.BaseType,
-			Id:   "Port",
-			Errors: []error{
-				errors.New(portEmptyErr),
 			},
 		},
 	}
