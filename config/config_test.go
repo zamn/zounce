@@ -3,7 +3,6 @@ package config
 import (
 	"errors"
 	"os"
-	"os/exec"
 	"reflect"
 	"testing"
 
@@ -71,20 +70,9 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	retCode := m.Run()
-
-	os.Exit(retCode)
-}
-
-// Lets make sure I didn't break my config while developing, heh
-// Requires tomlv
-func TestValidTomlTemplate(t *testing.T) {
-	cmd := exec.Command("tomlv", TemplateFile)
-
-	_, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("Config file not valid TOML! %s Error: %s\n", TemplateFile, err)
-	}
+	// os.Exit() does not respect defer statements
+	ret := m.Run()
+	os.Exit(ret)
 }
 
 func equals(exConfErr, confErr *confutils.ConfigError) bool {

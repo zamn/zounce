@@ -12,7 +12,7 @@ import (
 	"github.com/aarondl/ultimateq/parse"
 )
 
-func main() {
+func dead() {
 
 	conn, err := net.Dial("tcp", "irc.gamesurge.net:6667")
 
