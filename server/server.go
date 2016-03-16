@@ -2,28 +2,44 @@ package server
 
 import (
 	"fmt"
+	"io"
+	"net"
 
 	"github.com/spacemonkeygo/openssl"
 )
 
 func Start() error {
 	fmt.Println("Starting Server!")
-	serv_ctx, err := openssl.NewCtxFromFiles("keys/zamn.net.cert", "keys/zamn.net.key")
+	servCtx, err := openssl.NewCtxFromFiles("keys/zamn.net.cert", "keys/zamn.net.key")
 
 	if err != nil {
 		panic(err)
 	}
 
-	l, err := openssl.Listen("tcp", ":7777", serv_ctx)
+	l, err := openssl.Listen("tcp", ":7777", servCtx)
 
 	if err != nil {
 		panic(err)
 	}
 
-	conn, err := l.Accept()
-	fmt.Printf("Got: %#V\n", conn)
+	defer l.Close()
 
-	fmt.Printf("Addr", l.Addr())
+	sslListener := openssl.NewListener(l, servCtx)
+
+	for {
+		conn, err := sslListener.Accept()
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("Got: %#V\n", conn)
+
+		fmt.Println("SSL", conn)
+
+		go func(c net.Conn) {
+			io.Copy(c, c)
+			c.Close()
+		}(conn)
+	}
 
 	return nil
 }
