@@ -2,7 +2,7 @@ package server
 
 import (
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net"
 
 	"github.com/spacemonkeygo/openssl"
@@ -11,6 +11,15 @@ import (
 func Start() error {
 	fmt.Println("Starting Server!")
 	servCtx, err := openssl.NewCtxFromFiles("keys/zamn.net.cert", "keys/zamn.net.key")
+
+	certFile, err := ioutil.ReadFile("keys/zamn.net.chain")
+
+	if err != nil {
+		panic(err)
+	}
+
+	cert, err := openssl.LoadCertificateFromPEM(certFile)
+	servCtx.AddChainCertificate(cert)
 
 	if err != nil {
 		panic(err)
@@ -36,8 +45,16 @@ func Start() error {
 		fmt.Println("SSL", conn)
 
 		go func(c net.Conn) {
-			io.Copy(c, c)
-			c.Close()
+			msg := make([]byte, 2048)
+			if err != nil {
+				panic(err)
+			}
+
+			n, err := c.Read(msg)
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println(n, msg)
 		}(conn)
 	}
 
